@@ -6,7 +6,7 @@ venv/
 .streamlit/secrets.toml
 data/raw/*.csv
 data/processed/*.csv
+!data/processed/movies_final.csv
 data/exports/*.csv
 models/*.pkl
 database/*.db
-

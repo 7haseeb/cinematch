@@ -20,6 +20,8 @@ MOVIES_PKL = MODELS_DIR / "movies.pkl"
 SIMILARITY_PKL = MODELS_DIR / "similarity.pkl"
 VECTORIZER_PKL = MODELS_DIR / "vectorizer.pkl"
 MOVIES_FINAL_CSV = PROCESSED_DIR / "movies_final.csv"
+RAW_MOVIES_CSV = Path("data/raw/tmdb_5000_movies.csv")
+RAW_CREDITS_CSV = Path("data/raw/tmdb_5000_credits.csv")
 
 
 def _read_pickle(path: Path):
@@ -34,7 +36,15 @@ def _write_pickle(value, path: Path) -> None:
 
 
 def build_recommendation_artifacts() -> pd.DataFrame:
-    movies = build_final_movies()
+    if MOVIES_FINAL_CSV.exists():
+        movies = pd.read_csv(MOVIES_FINAL_CSV)
+    elif RAW_MOVIES_CSV.exists() and RAW_CREDITS_CSV.exists():
+        movies = build_final_movies()
+    else:
+        raise FileNotFoundError(
+            "Recommendation data is missing. Add data/processed/movies_final.csv "
+            "or the two TMDB 5000 raw CSV files."
+        )
     vectorizer, similarity = build_similarity(movies["tags"].fillna("").tolist())
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
@@ -46,7 +56,11 @@ def build_recommendation_artifacts() -> pd.DataFrame:
 
 
 def artifacts_available() -> bool:
-    return MOVIES_PKL.exists() and SIMILARITY_PKL.exists() and VECTORIZER_PKL.exists()
+    return (
+        MOVIES_PKL.exists()
+        and SIMILARITY_PKL.exists()
+        and VECTORIZER_PKL.exists()
+    ) or MOVIES_FINAL_CSV.exists() or (RAW_MOVIES_CSV.exists() and RAW_CREDITS_CSV.exists())
 
 
 def _as_set(value) -> set[str]:
@@ -138,7 +152,7 @@ class MovieRecommender:
         movies_path: Path = MOVIES_PKL,
         similarity_path: Path = SIMILARITY_PKL,
     ) -> None:
-        if not artifacts_available():
+        if not movies_path.exists() or not similarity_path.exists():
             build_recommendation_artifacts()
         self.movies: pd.DataFrame = _read_pickle(movies_path)
         self.similarity = _read_pickle(similarity_path)
