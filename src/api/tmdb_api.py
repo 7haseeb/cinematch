@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 import requests
 import streamlit as st
 from requests import RequestException
@@ -14,9 +16,14 @@ class TMDBError(RuntimeError):
 
 
 def _params(**extra: object) -> dict[str, object]:
-    api_key = secret("TMDB_API_KEY")
+    tmdb_section = st.secrets.get("tmdb", {})
+    api_key = (
+        secret("TMDB_API_KEY")
+        or tmdb_section.get("api_key", "")
+        or os.getenv("TMDB_API_KEY", "")
+    )
     if not api_key:
-        raise TMDBError("TMDB_API_KEY is missing from .streamlit/secrets.toml")
+        raise TMDBError("TMDB_API_KEY is missing from Streamlit Cloud secrets.")
     return {"api_key": api_key, "language": "en-US", **extra}
 
 
